@@ -1,0 +1,363 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+import seaborn as sns
+import opendatasets as od
+import os
+import plotly.express as px
+     url = 'https://www.kaggle.com/competitions/DontGetKicked/data'
+   od.download(url)
+   os.listdir('./DontGetKicked')
+train_df = pd.read_csv('DontGetKicked/training.csv')
+test_df = pd.read_csv('DontGetKicked/test.csv')
+     
+#Exploratory Data Analysis:
+
+train_df
+train_df.info()
+test_df
+a = train_df.IsBadBuy.value_counts()
+plt.figure(figsize=(6,6))
+sns.barplot(x=['NO','Yes'],y=a)
+plt.ylabel('Count')
+plt.title("Is a Bad Buy", fontsize = 18)
+     
+
+b = train_df.Auction.value_counts()
+colors = ['cyan', 'lightblue','pink']
+plt.figure(figsize=(7,7))
+plt.title('Purchase in Auction',fontsize=18)
+plt.pie(b,colors=colors,
+        labels =['MANHEIM','OTHER','ADESA'],
+        autopct = '%1.1f%%',startangle=90,shadow=True,
+       radius = 1.2,explode = (0, 0.0005,0))
+plt.legend();
+
+age = pd.DataFrame(train_df.VehicleAge.value_counts())
+plt.figure(figsize=(8,6))
+sns.barplot(x=age.index,y='VehicleAge',data=age)
+plt.ylabel('count',fontsize=18)
+plt.title('Vehicle Age',fontsize=18)
+     
+make = pd.DataFrame(train_df.Make.value_counts())
+plt.figure(figsize=(12,6))
+sns.barplot(x=make.index,y='Make',data=make)
+plt.ylabel('count',fontsize=18)
+plt.xticks(rotation=75)
+plt.title('Make',fontsize=18)
+    
+px.histogram(train_df, x="VehicleAge", color='IsBadBuy')
+     
+px.histogram(train_df, x= "Make", color='IsBadBuy',width=1000)
+     
+ px.histogram(train_df, x= "Nationality", color='IsBadBuy')
+
+px.histogram(train_df, x= "Size", color='IsBadBuy')
+
+px.histogram(train_df,x='VNST',width=1000)
+
+px.histogram(train_df,x='WheelType',y='IsBadBuy')
+
+plt.figure(figsize=(20,12))
+mask_matrix = np.triu(train_df.corr())
+sns.heatmap(train_df.corr(), cmap='crest', annot=True,mask=mask_matrix);
+   
+px.scatter(train_df, x="MMRAcquisitionAuctionAveragePrice", y="MMRAcquisitionRetailAveragePrice",color="IsBadBuy")
+     
+ px.scatter(train_df, x = "MMRCurrentAuctionAveragePrice",y = "MMRCurrentAuctionCleanPrice", color='IsBadBuy')
+     
+ px.scatter(train_df, x='MMRCurrentRetailAveragePrice', y='MMRCurrentRetailCleanPrice', color='IsBadBuy') 
+
+text_file = open('/content/DontGetKicked/Carvana_Data_Dictionary.txt')
+content = text_file.read()
+print(content)
+text_file.close()
+
+train_df.isna().sum()*100/len(train_df)
+     
+train_df.IsOnlineSale.value_counts()
+     
+#Data Preprocessing:
+
+train_df['Transmission'] = train_df['Transmission'].replace({'manual':'MANUAL'})
+     
+
+train_df.isna().sum()
+     
+train_df.drop(['Trim','Model','RefId','VehYear','WheelTypeID','VNZIP1','PRIMEUNIT','AUCGUART','PurchDate'], axis=1, inplace=True)
+test_df.drop(['Trim','Model','RefId','VehYear','WheelTypeID','VNZIP1','PRIMEUNIT','AUCGUART','PurchDate'], axis=1, inplace=True)
+     
+
+train_df.describe()
+
+train_targets = train_df['IsBadBuy'] train_df.drop('IsBadBuy',axis=1, inplace= True) 
+
+train_df.head()
+
+#Encoding & Imputing Technique:
+
+num_cols = train_df.select_dtypes(exclude='object').columns.tolist()
+     
+from sklearn.impute import SimpleImputer
+     
+imputer = SimpleImputer(strategy='mean')
+     
+train_df[num_cols] = imputer.transform(train_df[num_cols])
+
+imputer.fit(test_df[num_cols])
+test_df[num_cols] = imputer.transform(test_df[num_cols])
+     
+train_df.isna().sum()
+     
+train_df = train_df.apply(lambda x: x.fillna(x.value_counts().index[0]))
+     
+
+test_df = test_df.apply(lambda x: x.fillna(x.value_counts().index[0]))
+     
+test_df.isnull().sum()
+     
+from sklearn import preprocessing
+label_encoder = preprocessing.LabelEncoder()
+     
+train_df['Auction']= label_encoder.fit_transform(train_df["Auction"])
+train_df['Transmission']= label_encoder.fit_transform(train_df['Transmission'])
+train_df['WheelType']= label_encoder.fit_transform(train_df['WheelType'])
+train_df['Nationality']= label_encoder.fit_transform(train_df['Nationality'])
+train_df['TopThreeAmericanName']= label_encoder.fit_transform(train_df['TopThreeAmericanName'])
+
+test_df['Auction']= label_encoder.fit_transform(test_df["Auction"])
+test_df['Transmission']= label_encoder.fit_transform(test_df['Transmission'])
+test_df['WheelType']= label_encoder.fit_transform(test_df['WheelType'])
+test_df['Nationality']= label_encoder.fit_transform(test_df['Nationality'])
+test_df['TopThreeAmericanName']= label_encoder.fit_transform(test_df['TopThreeAmericanName'])
+     
+train_df.head()
+
+category_col = train_df.select_dtypes(include = 'object').columns.tolist()
+     
+from sklearn.preprocessing import OneHotEncoder
+     
+encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+encoder.fit(train_df[category_col])
+encoder.fit(test_df[category_col])
+     
+OneHotEncoder(handle_unknown='ignore', sparse=False)
+     
+encoded_cols = list(encoder.get_feature_names(category_col))
+     
+train_df[encoded_cols] = encoder.transform(train_df[category_col])
+test_df[encoded_cols] = encoder.transform(test_df[category_col])
+     
+train_df[encoded_cols]
+     
+train_df.columns.tolist()
+     
+from sklearn.preprocessing import MinMaxScaler
+     
+scaler = MinMaxScaler() scaler.fit(train_df[num_cols]) 
+
+train_df[num_cols] = scaler.transform(train_df[num_cols])
+test_df[num_cols] = scaler.transform(test_df[num_cols])
+     
+train_df[num_cols].describe()
+     
+
+train_df.drop(['Make','SubModel','Color','Size','VNST'],axis=1,inplace=True)
+test_df.drop(['Make','SubModel','Color','Size','VNST'],axis=1,inplace=True)
+     
+from sklearn.model_selection import train_test_split
+     
+inputs, val_inputs, train_targets, val_targets = train_test_split(train_df,train_targets, test_size=0.20, random_state=42)
+     
+#Dumb model:
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+dum_model_outs = np.zeros(len(inputs))
+accuracy_score(dum_model_outs,train_targets)
+     
+#Model 1: Logistic Regression:
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+     
+lr_model = LogisticRegression(random_state = 42,solver='liblinear',class_weight={0: 1, 1:1.6})
+lr_model.fit(inputs, train_targets)
+     
+lr_model.score(inputs, train_targets)
+     
+lr_model.score(val_inputs, val_targets)
+     
+train_preds = lr_model.predict(inputs)
+     
+confusion_matrix(train_targets, train_preds, normalize = 'pred')
+     
+accuracy = accuracy_score(train_targets, train_preds)
+accuracy
+     
+val_preds = lr_model.predict(val_inputs)
+     
+confusion_matrix(val_targets, val_preds, normalize = 'pred')
+     
+preds=lr_model.predict(test_df)
+     
+#Model 2: KNN Classifier
+
+from sklearn.neighbors import KNeighborsClassifier
+KNN = KNeighborsClassifier(algorithm='auto',leaf_size=30,metric='minkowski',n_neighbors=11,weights='uniform')
+     
+KNN.fit(inputs, train_targets)
+     
+KNN.score(inputs, train_targets)
+     
+KNN.score(val_inputs, val_targets)
+     
+preds=KNN.predict(test_df)
+submission_df['IsBadBuy']=preds
+     
+from sklearn.tree import DecisionTreeClassifier
+model = DecisionTreeClassifier(random_state=42)
+     
+model.fit(inputs, train_targets)
+     
+from sklearn.metrics import accuracy_score, confusion_matrix
+     
+
+train_preds = model.predict(inputs)
+     
+train_preds
+
+pd.value_counts(train_preds)
+     
+train_probs = model.predict_proba(inputs)
+train_probs
+
+accuracy_score(train_targets, train_preds)
+     
+model.score(val_inputs, val_targets)
+     
+val_targets.value_counts() / len(val_targets)
+     
+from sklearn.tree import plot_tree, export_text
+plt.figure(figsize=(80,20))
+plot_tree(model, feature_names=inputs.columns, max_depth=3, filled=True);
+     
+model.tree_.max_depth
+     
+importance_df = pd.DataFrame({
+    'feature': inputs.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+     
+plt.title('Feature Importance')
+sns.barplot(data=importance_df.head(10), x='importance', y='feature');
+    
+ #Model 3: DecisionTreeClassifier
+
+model = DecisionTreeClassifier
+(max_depth=3, random_state=42)
+     
+model.fit(inputs, train_targets)
+     
+model.score(inputs, train_targets)
+     
+model.score(val_inputs, val_targets)
+     
+def max_depth_error(md):
+    model = DecisionTreeClassifier(max_depth=md, random_state=42)
+    model.fit(inputs, train_targets)
+    train_acc = 1 - model.score(inputs, train_targets)
+    val_acc = 1 - model.score(val_inputs, val_targets)
+    return {'Max Depth': md, 'Training Error': train_acc, 'Validation Error': val_acc}
+     
+
+errors_df = pd.DataFrame([max_depth_error(md) for md in range(1, 21)])
+     
+
+errors_df
+
+plt.figure()
+plt.plot(errors_df['Max Depth'], errors_df['Training Error'])
+plt.plot(errors_df['Max Depth'], errors_df['Validation Error'])
+plt.title('Training vs. Validation Error')
+plt.xticks(range(0,21, 2))
+plt.xlabel('Max. Depth')
+plt.ylabel('Prediction Error (1 - Accuracy)')
+plt.legend(['Training', 'Validation'])
+     
+model = DecisionTreeClassifier(max_depth=4,max_leaf_nodes=50,random_state=42).fit(inputs, train_targets)
+model.score(val_inputs, val_targets)
+     
+preds=model.predict(test_df)
+submission_df['IsBadBuy']=preds
+     
+#Model 4: RandomForest Calssifier
+
+from sklearn.ensemble import RandomForestClassifier
+     
+
+model = RandomForestClassifier(n_jobs=-1, random_state=42)
+     
+
+model.fit(inputs, train_targets)
+     
+model.score(inputs, train_targets)
+     
+model.score(val_inputs, val_targets)
+     
+train_probs = model.predict_proba(inputs)
+train_probs
+     
+preds=model.predict_proba(test_df)
+submission_df['IsBadBuy']=preds[:,1]
+submission_df.to_csv('rf_Submissions.csv',index=False)
+     
+
+importance_df = pd.DataFrame({
+    'feature': inputs.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+     
+plt.figure(figsize=(10,6))
+plt.title('Feature Importance')
+sns.barplot(data=importance_df.head(10),palette='husl',x='importance', y='feature');
+plt.show()
+     
+def test_params(**params):
+    model = RandomForestClassifier(random_state=42, n_jobs=-1, **params).fit(inputs, train_targets)
+    return model.score(inputs, train_targets), model.score(val_inputs, val_targets)
+     
+test_params(max_depth=40)
+     
+test_params(max_leaf_nodes=2**12)
+     
+test_params(max_features='log2')
+     
+#Training our best Model:
+
+model = RandomForestClassifier(n_jobs=-1,
+                               random_state=42,
+                               n_estimators=300,
+                               max_features='log2',
+                               max_depth=40,
+                               class_weight={0: 1, 1: 1.6})
+     
+model.fit(inputs, train_targets)
+     
+model.score(inputs, train_targets), model.score(val_inputs, val_targets)
+     
+
+preds=model.predict_proba(test_df)
+submission_df['IsBadBuy']=preds[:,1]
+     
+
+
+     
+     
+
+     
+
+     
+
+     
